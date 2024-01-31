@@ -1,0 +1,11 @@
+---
+
+- name: Install Requirements
+  apt:
+    name: unzip,gpg
+    state: latest
+    update_cache: yes
+
+- include: onboarding_setup.yml
+- include: add_apt_repo.yml
+- include: install.yml
