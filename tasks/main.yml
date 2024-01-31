@@ -6,10 +6,10 @@
     update_cache: true
 
 - name: Deploy the Onboarding Information
-  import_task: onboarding_setup.yml
+  ansible.builtin.import_tasks: onboarding_setup.yml
 
 - name: Add the apt repository
-  import_task: add_apt_repo.yml
+  ansible.builtin.import_tasks: add_apt_repo.yml
 
 - name: Install MDATP
   ansible.builtin.apt:

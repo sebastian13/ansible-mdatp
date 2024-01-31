@@ -1,9 +1,17 @@
 ---
 
+- name: Remove Microsoft APT key from old location trusted.gpg
+  ansible.builtin.apt_key:
+    url: https://packages.microsoft.com/keys/microsoft.asc
+    state: absent 
+    keyring: /etc/apt/trusted.gpg
+  when: ansible_os_family == "Debian"
+
 - name: Add Microsoft APT key
   ansible.builtin.apt_key:
     url: https://packages.microsoft.com/keys/microsoft.asc
     state: present
+    keyring: /etc/apt/trusted.gpg.d/microsoft-packages.gpg
   when: ansible_os_family == "Debian"
 
 - name: Add Microsoft Apt Repository Debian 10 (Buster)
@@ -14,6 +22,13 @@
     filename: microsoft-{{ channel }}
   when: ansible_os_family == "Debian" and ansible_distribution == "Debian" and ansible_distribution_major_version|int == 10
 
+- name: Remove Microsoft Apt Repository Debian 10 (Buster)
+  ansible.builtin.apt_repository:
+    repo: deb [arch=arm64,armhf,amd64] https://packages.microsoft.com/debian/10/{{ channel }} buster main
+    state: absent
+    filename: microsoft-{{ channel }}
+  when: ansible_os_family == "Debian" and ansible_distribution == "Debian" and ansible_distribution_major_version|int > 10
+
 - name: Add Microsoft Apt Repository Debian 11 (Bullseye)
   ansible.builtin.apt_repository:
     repo: deb [arch=arm64,armhf,amd64] https://packages.microsoft.com/debian/11/{{ channel }} bullseye main
@@ -21,6 +36,13 @@
     state: present
     filename: microsoft-{{ channel }}
   when: ansible_os_family == "Debian" and ansible_distribution == "Debian" and ansible_distribution_major_version|int == 11
+
+- name: Remove Microsoft Apt Repository Debian 11 (Bullseye)
+  ansible.builtin.apt_repository:
+    repo: deb [arch=arm64,armhf,amd64] https://packages.microsoft.com/debian/11/{{ channel }} bullseye main
+    state: absent
+    filename: microsoft-{{ channel }}
+  when: ansible_os_family == "Debian" and ansible_distribution == "Debian" and ansible_distribution_major_version|int > 11
 
 - name: Add Microsoft Apt Repository Debian 12 (Bookworm)
   ansible.builtin.apt_repository:
