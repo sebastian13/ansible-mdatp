@@ -1,7 +1,0 @@
----
-
-- name: Install MDATP
-  apt:
-    name: mdatp
-    state: latest
-    update_cache: yes

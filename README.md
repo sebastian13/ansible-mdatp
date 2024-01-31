@@ -13,10 +13,8 @@ This role deploys Microsoft Defender for Endpoint. It is based on the official i
 - hosts: all
   become: true
 
-  tasks:
-    - name: Install & Onboard
-      import_role:
-        name: windows-defender-atp
+  roles:
+    -role: windows-defender-atp
 ```
 
 ### Run the playbook

@@ -1,11 +1,18 @@
 ---
 
 - name: Install Requirements
-  apt:
+  ansible.builtin.apt:
     name: unzip,gpg
-    state: latest
-    update_cache: yes
+    update_cache: true
 
-- include: onboarding_setup.yml
-- include: add_apt_repo.yml
-- include: install.yml
+- name: Deploy the Onboarding Information
+  import_task: onboarding_setup.yml
+
+- name: Add the apt repository
+  import_task: add_apt_repo.yml
+
+- name: Install MDATP
+  ansible.builtin.apt:
+    name: mdatp
+    state: latest
+    update_cache: true

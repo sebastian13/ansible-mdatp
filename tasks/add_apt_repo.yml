@@ -1,31 +1,31 @@
 ---
 
 - name: Add Microsoft APT key
-  apt_key:
+  ansible.builtin.apt_key:
     url: https://packages.microsoft.com/keys/microsoft.asc
     state: present
   when: ansible_os_family == "Debian"
 
 - name: Add Microsoft Apt Repository Debian 10 (Buster)
-  apt_repository:
+  ansible.builtin.apt_repository:
     repo: deb [arch=arm64,armhf,amd64] https://packages.microsoft.com/debian/10/{{ channel }} buster main
-    update_cache: yes
+    update_cache: true
     state: present
     filename: microsoft-{{ channel }}
   when: ansible_os_family == "Debian" and ansible_distribution == "Debian" and ansible_distribution_major_version|int == 10
 
 - name: Add Microsoft Apt Repository Debian 11 (Bullseye)
-  apt_repository:
+  ansible.builtin.apt_repository:
     repo: deb [arch=arm64,armhf,amd64] https://packages.microsoft.com/debian/11/{{ channel }} bullseye main
-    update_cache: yes
+    update_cache: true
     state: present
     filename: microsoft-{{ channel }}
   when: ansible_os_family == "Debian" and ansible_distribution == "Debian" and ansible_distribution_major_version|int == 11
 
 - name: Add Microsoft Apt Repository Debian 12 (Bookworm)
-  apt_repository:
+  ansible.builtin.apt_repository:
     repo: deb [arch=arm64,armhf,amd64] https://packages.microsoft.com/debian/12/{{ channel }} bookworm main
-    update_cache: yes
+    update_cache: true
     state: present
     filename: microsoft-{{ channel }}
   when: ansible_os_family == "Debian" and ansible_distribution == "Debian" and ansible_distribution_major_version|int == 12
