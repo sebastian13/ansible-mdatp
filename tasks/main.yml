@@ -16,3 +16,6 @@
     name: mdatp
     state: latest
     update_cache: true
+
+- name: Add cron for regular scans
+  ansible.builtin.import_tasks: cron_setup.yml
