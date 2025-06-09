@@ -19,3 +19,6 @@
 
 - name: Add cron for regular scans
   ansible.builtin.import_tasks: cron_setup.yml
+
+- name: Enable MDE with passive mode disabled and Real-Time Protection enabled
+  ansible.builtin.command: /usr/bin/mdatp threat policy set --type potentially_unwanted_application --action block

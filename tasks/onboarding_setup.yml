@@ -14,9 +14,9 @@
     path: /etc/opt/microsoft/mdatp/mdatp_onboard.json
   register: mdatp_onboard
 
-- name: Extract WindowsDefenderATPOnboardingPackage.zip into /etc/opt/microsoft/mdatp
+- name: Extract GatewayWindowsDefenderATPOnboardingPackage.zip into /etc/opt/microsoft/mdatp
   ansible.builtin.unarchive:
-    src: WindowsDefenderATPOnboardingPackage.zip
+    src: GatewayWindowsDefenderATPOnboardingPackage.zip
     dest: /etc/opt/microsoft/mdatp
     mode: '0600'
     owner: root
