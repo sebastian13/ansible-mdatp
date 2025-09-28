@@ -5,6 +5,12 @@
     name: unzip,gpg
     update_cache: true
 
+# https://m365admin.handsontek.net/microsoft-defender-endpoint-linux-removing-netfilter-dependency/
+- name: Remove mde-netfilter if installed
+  ansible.builtin.apt:
+    name: mde-netfilter
+    state: absent
+
 - name: Deploy the Onboarding Information
   ansible.builtin.import_tasks: onboarding_setup.yml
 
@@ -20,5 +26,10 @@
 - name: Add cron for regular scans
   ansible.builtin.import_tasks: cron_setup.yml
 
-- name: Enable MDE with passive mode disabled and Real-Time Protection enabled
+- name: Check current MDE policy
+  ansible.builtin.command: /usr/bin/mdatp threat policy list
+  register: mde_policy
+
+- name: Enable blocking of Potentially Unwanted Applications (PUA) if not already set
   ansible.builtin.command: /usr/bin/mdatp threat policy set --type potentially_unwanted_application --action block
+  when: "'potentially_unwanted_application' in mde_policy.stdout and 'block' not in mde_policy.stdout"
