@@ -9,16 +9,28 @@
     owner: root
     group: root
 
-- name: Register mdatp_onboard.json
-  ansible.builtin.stat:
-    path: /etc/opt/microsoft/mdatp/mdatp_onboard.json
-  register: mdatp_onboard
+# Preferred: onboarding info from inventory (group_vars/host_vars).
+# Accepts a YAML mapping or a raw JSON string; both are normalized to JSON.
+# force: false keeps the behaviour of only onboarding devices that are not onboarded yet.
+- name: Deploy mdatp_onboard.json from inventory variable
+  ansible.builtin.copy:
+    content: "{{ (mdatp_onboard_json | from_json if mdatp_onboard_json is string else mdatp_onboard_json) | to_json }}"
+    dest: /etc/opt/microsoft/mdatp/mdatp_onboard.json
+    mode: '0600'
+    owner: root
+    group: root
+    force: false
+  # Do not print the onboarding info with --diff
+  diff: false
+  when: mdatp_onboard_json is not none
 
-- name: Extract GatewayWindowsDefenderATPOnboardingPackage.zip into /etc/opt/microsoft/mdatp
+# Fallback: onboarding zip from files/
+- name: Extract onboarding package into /etc/opt/microsoft/mdatp - {{ mdatp_onboarding_package }}
   ansible.builtin.unarchive:
-    src: GatewayWindowsDefenderATPOnboardingPackage.zip
+    src: "{{ mdatp_onboarding_package }}"
     dest: /etc/opt/microsoft/mdatp
     mode: '0600'
     owner: root
     group: root
-  when: not mdatp_onboard.stat.exists
+    creates: /etc/opt/microsoft/mdatp/mdatp_onboard.json
+  when: mdatp_onboard_json is none

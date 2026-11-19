@@ -1,1 +1,3 @@
-*WindowsDefenderATPOnboardingPackage.zip
+# Onboarding packages and their content are tenant-specific secrets, never commit them
+*OnboardingPackage*.zip
+mdatp_onboard.json

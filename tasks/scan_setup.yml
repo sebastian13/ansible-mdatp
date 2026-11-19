@@ -1,0 +1,110 @@
+---
+
+# Scheduled antivirus scans
+# https://learn.microsoft.com/en-us/defender-endpoint/configure-anti-virus-scans-linux
+# https://learn.microsoft.com/en-us/defender-endpoint/schedule-antivirus-scans-linux
+
+- name: Validate scan settings
+  ansible.builtin.assert:
+    that:
+      - mdatp_scan_method in ['builtin', 'cron', 'none']
+      - mdatp_scan_weekly_type in ['quick', 'full']
+      - mdatp_scan_weekly_day | int in range(0, 9)
+      - mdatp_scan_custom_day | int in range(1, 9)
+      - mdatp_scan_randomize_hours | int in range(0, 24)
+    quiet: true
+
+- name: Get installed mdatp version
+  ansible.builtin.command: /usr/bin/mdatp version
+  register: mdatp_version_cmd
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Determine installed mdatp version
+  ansible.builtin.set_fact:
+    mdatp_installed_version: "{{ mdatp_version_cmd.stdout | default('') | regex_search('[0-9]+\\.[0-9]+\\.[0-9]+') or '0' }}"
+
+- name: Determine effective scan method
+  ansible.builtin.set_fact:
+    mdatp_scan_method_effective: >-
+      {{ 'cron'
+         if mdatp_scan_method == 'builtin' and mdatp_installed_version is version(mdatp_scan_builtin_min_version, '<')
+         else mdatp_scan_method }}
+
+- name: Warn about fallback to cron
+  ansible.builtin.debug:
+    msg: >-
+      mdatp {{ mdatp_installed_version }} does not support the built-in scan scheduler
+      (requires >= {{ mdatp_scan_builtin_min_version }}). Falling back to cron.
+      Set mdatp_package_state to 'latest' to upgrade.
+  when: mdatp_scan_method == 'builtin' and mdatp_scan_method_effective == 'cron'
+
+# --- Built-in scheduler ---
+# Only builds the settings; mdatp_managed.json is written in managed_config.yml.
+
+- name: Build scheduled scan settings
+  ansible.builtin.set_fact:
+    mdatp_managed_scan: >-
+      {{ {'antivirusEngine': {'scheduledScan': 'enabled'},
+          'scheduledScan': mdatp_scheduled_scan | combine(mdatp_daily_scan if mdatp_scan_daily | bool else {})}
+         if mdatp_scan_method_effective == 'builtin'
+         else {'antivirusEngine': {'scheduledScan': 'disabled'}} }}
+  vars:
+    mdatp_scheduled_scan:
+      weeklyConfiguration:
+        dayOfWeek: "{{ mdatp_scan_weekly_day | int }}"
+        timeOfDay: "{{ mdatp_scan_weekly_time_of_day | int }}"
+        scanType: "{{ mdatp_scan_weekly_type }}"
+      runScanWhenIdle: "{{ mdatp_scan_when_idle | bool }}"
+      lowPriorityScheduledScan: "{{ mdatp_scan_low_priority | bool }}"
+      checkForDefinitionsUpdate: "{{ mdatp_scan_check_for_definitions_update | bool }}"
+      ignoreExclusions: "{{ mdatp_scan_ignore_exclusions | bool }}"
+      randomizeScanStartTime: "{{ mdatp_scan_randomize_hours | int }}"
+    mdatp_daily_scan:
+      dailyConfiguration:
+        timeOfDay: "{{ mdatp_scan_daily_time_of_day | int }}"
+        interval: "{{ mdatp_scan_daily_interval | int }}"
+
+# --- Cron ---
+# Randomization: seeded per host, so the schedule stays stable between runs.
+
+- name: Add daily quick scan (cron)
+  ansible.builtin.cron:
+    name: Microsoft Defender Daily Quick Scan
+    hour: "{{ (mdatp_daily_minutes | int // 60) % 24 }}"
+    minute: "{{ mdatp_daily_minutes | int % 60 }}"
+    job: /usr/bin/pgrep -f "mdatp scan" > /dev/null || /usr/bin/mdatp scan quick > /dev/null 2>&1
+    state: "{{ 'present' if mdatp_scan_method_effective == 'cron' and mdatp_scan_daily | bool else 'absent' }}"
+  vars:
+    mdatp_daily_minutes: >-
+      {{ mdatp_scan_daily_time_of_day | int
+         + ((mdatp_scan_randomize_hours | int * 60 + 1) | random(seed=inventory_hostname ~ 'daily')) }}
+
+- name: Add weekly scan (cron)
+  ansible.builtin.cron:
+    name: Microsoft Defender Weekly Scan
+    weekday: "{{ '*' if mdatp_scan_weekly_day | int == 8 else mdatp_scan_weekly_day | int - 1 }}"
+    hour: "{{ (mdatp_weekly_minutes | int // 60) % 24 }}"
+    minute: "{{ mdatp_weekly_minutes | int % 60 }}"
+    job: /usr/bin/pgrep -f "mdatp scan" > /dev/null || /usr/bin/mdatp scan {{ mdatp_scan_weekly_type }} > /dev/null 2>&1
+    state: "{{ 'present' if mdatp_scan_method_effective == 'cron' and mdatp_scan_weekly_day | int > 0 else 'absent' }}"
+  vars:
+    mdatp_weekly_minutes: >-
+      {{ mdatp_scan_weekly_time_of_day | int
+         + ((mdatp_scan_randomize_hours | int * 60 + 1) | random(seed=inventory_hostname ~ 'weekly')) }}
+
+- name: Add weekly custom scan (cron)
+  ansible.builtin.cron:
+    name: Microsoft Defender Weekly Custom Scan
+    weekday: "{{ '*' if mdatp_scan_custom_day | int == 8 else mdatp_scan_custom_day | int - 1 }}"
+    hour: "{{ (mdatp_custom_minutes | int // 60) % 24 }}"
+    minute: "{{ mdatp_custom_minutes | int % 60 }}"
+    job: >-
+      /usr/bin/pgrep -f 'mdatp scan' > /dev/null ||
+      ( {% for path in mdatp_scan_custom_paths %}/usr/bin/mdatp scan custom --path {{ path | quote }} > /dev/null 2>&1{{ '; ' if not loop.last }}{% endfor %} )
+    state: "{{ 'present' if mdatp_scan_custom_paths | length > 0 else 'absent' }}"
+  vars:
+    mdatp_custom_minutes: >-
+      {{ mdatp_scan_custom_time_of_day | int
+         + ((mdatp_scan_randomize_hours | int * 60 + 1) | random(seed=inventory_hostname ~ 'custom')) }}

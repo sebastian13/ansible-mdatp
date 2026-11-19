@@ -36,24 +36,30 @@
 
 - name: Add Microsoft Apt Repository Debian 11 (Bullseye)
   ansible.builtin.apt_repository:
-    repo: deb [arch=arm64,armhf,amd64 signed-by=/usr/share/keyrings/microsoft-packages.gpg] https://packages.microsoft.com/debian/11/{{ channel }} bullseye main
+    repo: >-
+      deb [arch=arm64,armhf,amd64 signed-by=/usr/share/keyrings/microsoft-packages.gpg]
+      https://packages.microsoft.com/debian/11/{{ mdatp_channel }} bullseye main
     update_cache: true
     state: present
-    filename: microsoft-{{ channel }}
+    filename: microsoft-{{ mdatp_channel }}
   when: ansible_os_family == "Debian" and ansible_distribution == "Debian" and ansible_distribution_major_version|int == 11
 
 - name: Add Microsoft Apt Repository Debian 12 (Bookworm)
   ansible.builtin.apt_repository:
-    repo: deb [arch=arm64,armhf,amd64 signed-by=/usr/share/keyrings/microsoft-packages.gpg] https://packages.microsoft.com/debian/12/{{ channel }} bookworm main
+    repo: >-
+      deb [arch=arm64,armhf,amd64 signed-by=/usr/share/keyrings/microsoft-packages.gpg]
+      https://packages.microsoft.com/debian/12/{{ mdatp_channel }} bookworm main
     update_cache: true
     state: present
-    filename: microsoft-{{ channel }}
+    filename: microsoft-{{ mdatp_channel }}
   when: ansible_os_family == "Debian" and ansible_distribution == "Debian" and ansible_distribution_major_version|int == 12
 
 - name: Add Microsoft Apt Repository Debian 13 (Trixie)
   ansible.builtin.apt_repository:
-    repo: deb [arch=amd64,arm64,armhf signed-by=/usr/share/keyrings/microsoft-packages.gpg] https://packages.microsoft.com/debian/13/{{ channel }} trixie main
-    filename: microsoft-{{ channel }}
+    repo: >-
+      deb [arch=amd64,arm64,armhf signed-by=/usr/share/keyrings/microsoft-packages.gpg]
+      https://packages.microsoft.com/debian/13/{{ mdatp_channel }} trixie main
+    filename: microsoft-{{ mdatp_channel }}
     update_cache: true
     state: present
   when: ansible_os_family == "Debian" and ansible_distribution == "Debian" and ansible_distribution_major_version | int == 13

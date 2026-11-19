@@ -1,0 +1,61 @@
+---
+
+# Managed configuration: /etc/opt/microsoft/mdatp/managed/mdatp_managed.json
+# https://learn.microsoft.com/en-us/defender-endpoint/linux-preferences
+# Most settings are applied by mdatp without restart.
+# Note: Defender portal policies (security settings management) take precedence.
+
+- name: Validate antivirus settings
+  ansible.builtin.assert:
+    that:
+      - mdatp_enforcement_level in ['real_time', 'on_demand', 'passive', 'audit']
+      - mdatp_threat_pua in ['audit', 'block', 'off']
+      - mdatp_threat_archive_bomb in ['audit', 'block', 'off']
+      - mdatp_exclusions_merge_policy in ['merge', 'admin_only']
+      - mdatp_sample_submission in ['none', 'safe', 'all']
+      - mdatp_cloud_block_level in ['normal', 'moderate', 'high', 'high_plus', 'zero_tolerance']
+      - mdatp_scan_max_threads | int in range(1, 65)
+    quiet: true
+
+- name: Create managed configuration directory
+  ansible.builtin.file:
+    path: /etc/opt/microsoft/mdatp/managed
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+
+# Merge order (later wins): antivirus settings < scan settings < mdatp_managed_config
+- name: Deploy mdatp_managed.json
+  ansible.builtin.copy:
+    content: >-
+      {{ mdatp_managed_av
+         | combine(mdatp_managed_scan, recursive=true)
+         | combine(mdatp_managed_config, recursive=true)
+         | to_nice_json(indent=2) }}
+    dest: /etc/opt/microsoft/mdatp/managed/mdatp_managed.json
+    mode: '0644'
+    owner: root
+    group: root
+  vars:
+    mdatp_av_base:
+      antivirusEngine:
+        enforcementLevel: "{{ mdatp_enforcement_level }}"
+        behaviorMonitoring: "{{ 'enabled' if mdatp_behavior_monitoring | bool else 'disabled' }}"
+        maximumOnDemandScanThreads: "{{ mdatp_scan_max_threads | int }}"
+        threatTypeSettings:
+          - key: potentially_unwanted_application
+            value: "{{ mdatp_threat_pua }}"
+          - key: archive_bomb
+            value: "{{ mdatp_threat_archive_bomb }}"
+      cloudService:
+        enabled: "{{ mdatp_cloud_enabled | bool }}"
+        automaticDefinitionUpdateEnabled: "{{ mdatp_automatic_definition_update | bool }}"
+        automaticSampleSubmissionConsent: "{{ mdatp_sample_submission }}"
+        cloudBlockLevel: "{{ mdatp_cloud_block_level }}"
+    mdatp_av_optional: >-
+      {{ ({'cloudService': {'proxy': mdatp_proxy}} if mdatp_proxy else {})
+         | combine({'exclusionSettings': {'exclusions': mdatp_exclusions, 'mergePolicy': mdatp_exclusions_merge_policy}}
+                   if mdatp_exclusions | length > 0 or mdatp_exclusions_merge_policy == 'admin_only' else {})
+         | combine({'edr': {'tags': [{'key': 'GROUP', 'value': mdatp_device_tag}]}} if mdatp_device_tag else {}) }}
+    mdatp_managed_av: "{{ mdatp_av_base | combine(mdatp_av_optional, recursive=true) }}"
