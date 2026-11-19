@@ -8,7 +8,7 @@ This role installs and configures Microsoft Defender for Endpoint on Linux. It i
 2. Provide the onboarding information, either
    - **(recommended)** via inventory variable `mdatp_onboard_json` (see [Onboarding via group_vars](#onboarding-via-group_vars)), or
    - by putting the zip file unchanged into the `files/` directory of this role or your playbook.
-3. Ensure the target hosts are supported Debian or Ubuntu Linux systems.
+3. Target hosts run Debian 11, 12 or 13 (other distributions are rejected by the role).
 
 ## Role Variables
 
@@ -125,6 +125,12 @@ The file is only written if it does not exist yet, so already onboarded devices 
 - `mdatp_package_state` defaults to `latest`: the agent is upgraded on every run. Set `present` to keep the old behavior.
 - `channel` is renamed to `mdatp_channel`; the old name still works.
 - The PUA policy is no longer set via `mdatp threat policy set`, but in `mdatp_managed.json` (`mdatp_threat_pua`).
+- The repository is written in deb822 format to `/etc/apt/sources.list.d/microsoft-<channel>.sources`
+  (requires `python3-debian`, installed by the role); the old `microsoft-<channel>.list` is removed.
+- The keyring contains both Microsoft signing keys (`microsoft.asc` for Debian 11/12, `microsoft-rolling.asc`
+  for Debian 13).
+- Earlier versions set `0755` recursively on `/etc/opt/microsoft/mdatp`, making `mdatp_onboard.json`
+  world-readable. The role now restores `0600`.
 
 ## Installation
 

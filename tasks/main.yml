@@ -2,7 +2,10 @@
 
 - name: Install Requirements
   ansible.builtin.apt:
-    name: unzip,gpg
+    name:
+      - unzip
+      - gpg
+      - python3-debian   # required by ansible.builtin.deb822_repository
     update_cache: true
 
 # https://m365admin.handsontek.net/microsoft-defender-endpoint-linux-removing-netfilter-dependency/

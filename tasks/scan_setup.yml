@@ -14,8 +14,9 @@
       - mdatp_scan_randomize_hours | int in range(0, 24)
     quiet: true
 
+# From the package database: 'mdatp version' needs a responsive wdavdaemon and hangs otherwise.
 - name: Get installed mdatp version
-  ansible.builtin.command: /usr/bin/mdatp version
+  ansible.builtin.command: dpkg-query -W -f=${Version} mdatp
   register: mdatp_version_cmd
   changed_when: false
   failed_when: false

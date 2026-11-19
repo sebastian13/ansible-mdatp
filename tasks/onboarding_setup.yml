@@ -1,13 +1,22 @@
 ---
 
-- name: Create MDATP directories
+# Not recursive: that would set 0755 on mdatp_onboard.json and mdatp_managed.json on every run.
+- name: Create MDATP directory
   ansible.builtin.file:
-    path: /etc/opt/microsoft/mdatp/
-    recurse: true
+    path: /etc/opt/microsoft/mdatp
     state: directory
     mode: '0755'
     owner: root
     group: root
+
+# Repairs hosts where earlier versions of this role made the onboarding info world-readable.
+- name: Restrict permissions of mdatp_onboard.json
+  ansible.builtin.file:
+    path: /etc/opt/microsoft/mdatp/mdatp_onboard.json
+    mode: '0600'
+    owner: root
+    group: root
+  failed_when: false
 
 # Preferred: onboarding info from inventory (group_vars/host_vars).
 # Accepts a YAML mapping or a raw JSON string; both are normalized to JSON.
